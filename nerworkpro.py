@@ -105,6 +105,7 @@ class Ui_Wireshark(object):
         self.actionExit.setText(_translate("Wireshark", "Exit"))
 
 
+
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
