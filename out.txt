@@ -1,0 +1,1 @@
+<bound method Packet.summary of <Ether  dst=bc:85:56:20:cc:25 src=04:8d:38:cb:62:98 type=0x800 |<IP  version=4 ihl=5 tos=0x0 len=48 id=2728 flags= frag=0 ttl=117 proto=udp chksum=0x22e7 src=37.235.48.150 dst=192.168.1.5 options=[] |<UDP  sport=1525 dport=49084 len=28 chksum=0x80bb |<Raw  load=b'!\x00K\xcd\x96\xbe\xf5(\x9aP\r\x0b\x00\x00\xbd\xd4\xe1Ja\xea' |>>>>>
