@@ -10,11 +10,78 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 filter=''
 from scapy.all import *
 import datetime
-import scapy.plist
-pkts_sniffed = sniff(count=10)
-dummy_pckets=[['0','12:45','12.43','26.78','http','100','long'],
-              ['1', '12:45', '12.43', '26.78', 'https', '100', 'long'],
-              ['2', '12:45', '12.43', '26.78', 'udp', '100', 'long']]
+
+pkts_sniffed =[]
+num_of_packets=0
+
+class GuiForm(QtWidgets.QMainWindow):
+    def __init__(self, parent=None):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.ui = Ui_Wireshark()
+        self.ui.setupUi(self)
+        # self.tableView_2.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.ui.tableView.itemClicked.connect(self.show_packet_details)
+        self.ui.btnFilter.clicked.connect(self.filter_captured_packets)
+
+        # self.show_packets_data()
+        self.start_sniffing()
+
+        
+
+    def show_packets_data(self, item):
+        global pkts_sniffed, num_of_packets
+        rowPosition = self.ui.tableView.rowCount()
+        self.ui.tableView.insertRow(rowPosition)
+        pkts_sniffed.append(item)
+        print(pkts_sniffed)
+        self.ui.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(num_of_packets)))
+        self.ui.tableView.setItem(rowPosition, 1,
+                               QtWidgets.QTableWidgetItem(str((item.time))))
+        self.ui.tableView.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(item[1].src))
+        self.ui.tableView.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(item[1].dst))
+        protocol=item[1].get_field('proto')
+        field=protocol.i2s[item[1].proto]
+        self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(field))
+        self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
+        self.ui.tableView.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem('info'))
+        num_of_packets += 1
+
+        # for m, item in enumerate(pkts_sniffed):
+        #     self.ui.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(m+1)))
+        #     self.ui.tableView.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(str(datetime.datetime.fromtimestamp(item.time))))
+        #     self.ui.tableView.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(item[1].src))
+        #     self.ui.tableView.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(item[1].dst))
+        #     self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(str(item[1].proto)))
+        #     self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
+        #     self.ui.tableView.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem('info'))
+        #     # self.ui.tableView.insertRow(rowPosition)
+        #     rowPosition = self.ui.tableView.rowCount()
+        #     self.ui.tableView.insertRow(rowPosition)
+
+        self.ui.tableView.show()
+
+    def show_packet_details(self, pcket_clicked):
+
+        self.ui.hex_view.setText(hexdump(pkts_sniffed[pcket_clicked.row()], dump=True))
+        self.ui.tableView_2.clear()
+
+        pcket_details = parse_packet(str(pkts_sniffed[pcket_clicked.row()].show(dump=True)))
+        print(pcket_details)
+
+        for dic_key, detail_list in pcket_details.items():
+
+            parent_node = QtWidgets.QTreeWidgetItem(self.ui.tableView_2)
+            parent_node.setText(0, dic_key)
+            for detail_index, detail in enumerate(detail_list):
+                items = QtWidgets.QTreeWidgetItem(parent_node)
+                items.setText(0, detail)
+
+    def start_sniffing(self, interface=conf.iface, filter=''):
+        sniff(count=10, iface=interface, filter=filter, prn=self.show_packets_data)
+    #def callbackSetText(self, data):
+        # Receiving data from sniffer thread
+        # and puting them in a textedit widget
+        #elf.ui.textedit.setText(data)
 
 class Ui_Wireshark(object):
     def setupUi(self, Wireshark):
@@ -61,20 +128,25 @@ class Ui_Wireshark(object):
         self.labelFilter.setFont(font)
         self.labelFilter.setObjectName("labelFilter")
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
-        self.lineEdit.setGeometry(QtCore.QRect(80, 50, 1140, 16))
+        self.lineEdit.setGeometry(QtCore.QRect(80, 50, 1100, 20))
         self.lineEdit.setObjectName("lineEdit")
+
+        self.btnFilter=QtWidgets.QPushButton(self.centralwidget)
+        self.btnFilter.setGeometry(QtCore.QRect(1110, 50, 50, 20))
+        self.btnFilter.setObjectName("btnFilter")
+
         self.tableView = QtWidgets.QTableWidget(self.centralwidget)
         self.tableView.setGeometry(QtCore.QRect(60, 110, 1200, 321))
         self.tableView.setObjectName("tableView")
         self.tableView_2 = QtWidgets.QTreeWidget(self.centralwidget)
         self.tableView_2.setGeometry(QtCore.QRect(60, 450, 561, 151))
         self.tableView_2.setObjectName("tableView_2")
+        self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         #show pckets in table
         self.table_headers=['No','time','source','destination','protocol','length','info']
-        self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        #self.tableView_2.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.tableView.itemClicked.connect(self.show_packet_details)
+
+
 
 
         #hex view
@@ -89,7 +161,6 @@ class Ui_Wireshark(object):
         #self.tableView_2.setColumnCount(1)
         self.tableView.setHorizontalHeaderLabels(self.table_headers)
 
-        self.show_packets_data()
 
 
         Wireshark.setCentralWidget(self.centralwidget)
@@ -135,43 +206,7 @@ class Ui_Wireshark(object):
         self.actionSave.setText(_translate("Wireshark", "Save"))
         self.actionExit.setText(_translate("Wireshark", "Exit"))
 
-    def show_packets_data(self):
-        rowPosition = self.tableView.rowCount()
-        self.tableView.insertRow(rowPosition)
-        print(pkts_sniffed)
 
-        for m, item in enumerate(pkts_sniffed):
-            self.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(m+1)))
-            self.tableView.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(str(datetime.datetime.fromtimestamp(item.time))))
-            self.tableView.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(item[1].src))
-            self.tableView.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(item[1].dst))
-            self.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(str(item[1].proto)))
-            self.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
-            self.tableView.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem('info'))
-            # self.tableView.insertRow(rowPosition)
-            rowPosition = self.tableView.rowCount()
-            self.tableView.insertRow(rowPosition)
-
-        self.tableView.show()
-
-    def show_packet_details(self,pcket_clicked):
-
-        self.hex_view.setText(hexdump(pkts_sniffed[pcket_clicked.row()],dump=True))
-        self.tableView_2.clear()
-
-        pcket_details=parse_packet(str(pkts_sniffed[pcket_clicked.row()].show(dump=True)))
-        print (pcket_details)
-
-
-        for dic_key, detail_list in pcket_details.items():
-
-            parent_node = QtWidgets.QTreeWidgetItem(self.tableView_2)
-            parent_node.setText(0,dic_key)
-            for detail_index,detail in enumerate(detail_list):
-                items=QtWidgets.QTreeWidgetItem(parent_node)
-                items.setText(0,detail)
-    def start_sniffing(self,interface=conf.iface,filter=''):
-        sniff(count=0,iface=interface,filter=filter,prn=self.show_packets_data)
 
 
 
@@ -200,14 +235,20 @@ def parse_packet(d):
     return ret_lst
 
 
-
+from  Sniffer import  *
+from PyQt5.QtCore import QObject, pyqtSignal
 
 if __name__ == "__main__":
+    # sniffer = Sniffer()
+    # sniffer.start()
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    Wireshark = QtWidgets.QMainWindow()
-    ui = Ui_Wireshark()
-    ui.setupUi(Wireshark)
+    Wireshark = GuiForm()
+    # ui = Ui_Wireshark()
+    # ui.setupUi(Wireshark)
+    #Wireshark.connect(Wireshark, QtCore.SIGNAL('packetReceived(PyQt_PyObject)'),Wireshark. )
+
     Wireshark.show()
+
     sys.exit(app.exec_())
 

@@ -27,7 +27,7 @@ num_of_pckts=1
 #     ret_pckt=[str(num_of_pckts),pck]
 
 
-pkts_sniffed = sniff(count=10,filter=filter)
+#pkts_sniffed = sniff(count=10,filter=filter)
 
 
 # for i in range(10):
