@@ -26,7 +26,7 @@ class GuiForm(QtWidgets.QMainWindow):
         # self.show_packets_data()
         self.start_sniffing()
 
-        
+
 
     def show_packets_data(self, item):
         global pkts_sniffed, num_of_packets
