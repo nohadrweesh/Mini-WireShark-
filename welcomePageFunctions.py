@@ -4,10 +4,14 @@ from scapy import  arch
 #print(get_windows_if_list())
 def get_interfaces_list():
     lst = get_windows_if_list()
-    interfaces_list=[ diction['netid'] for diction in lst]
+    interfaces_list=[]
+
+    #interfaces_list =[ diction['netid'] for diction in lst]
+    for if_item in lst:
+        interfaces_list.append({'name':if_item['name'],'netid':if_item['netid']})
     return interfaces_list
 
-#print(get_interfaces_list())
+print(get_interfaces_list())
 
 
 # if_s=[{'name': 'Bluetooth Device (Personal Area Network)',

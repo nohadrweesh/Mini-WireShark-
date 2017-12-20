@@ -7,7 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-filter =''
+
+filter = ''
+interface_chosen=''
 from scapy.all import *
 import datetime
 
@@ -15,7 +17,7 @@ pkts_sniffed =PacketList()
 num_of_packets=0
 
 class GuiForm(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, interface_chosen=conf.iface):
         QtWidgets.QWidget.__init__(self, parent)
         self.ui = Ui_Wireshark()
         self.ui.setupUi(self)
@@ -27,78 +29,124 @@ class GuiForm(QtWidgets.QMainWindow):
         self.ui.tableView.itemClicked.connect(self.show_packet_details)
         self.ui.btnFilter.clicked.connect(self.filter_captured_packets)
 
-
-
+        self.ui.btnStart.clicked.connect(self.start_capturing_packets)
+        self.ui.lineEdit.textChanged.connect(self.set_filter_val)
+        self.ui.btnStop.clicked.connect(self.stop_capturing_packets)
 
         # self.show_packets_data()
         #self.start_sniffing()
 
         self.sniffer = Sniffer()
+        if interface_chosen != conf.iface:
+            self.sniffer.interface= IFACES.dev_from_name(interface_chosen)
+
         self.sniffer.start()
         self.sniffer.show_packets_data.connect(self.show_packets_data)
+        self.sniffer.show_packets_data_after_filtering.connect(self.show_packets_data_after_filtering)
 
 
 
-    def show_packets_data(self, item,store=True):
+    def show_packets_data(self, item):
 
         global pkts_sniffed, num_of_packets
         rowPosition = self.ui.tableView.rowCount()
         self.ui.tableView.insertRow(rowPosition)
-        if store == True:
-            pkts_sniffed.append(item)
-            num_of_packets += 1
+
+        pkts_sniffed.append(item)
+        num_of_packets += 1
         #print(pkts_sniffed)
-            self.ui.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(num_of_packets)))
-        else:
-            self.ui.tableView.removeRow(0)
-            rowPosition=0
+        self.ui.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(num_of_packets)))
+
+            # print("remove table")
+            # self.ui.tableView.removeRow(0)
+            # rowPosition = 0
 
         tm = str(datetime.utcfromtimestamp(item.time))
-        print(tm)
+        #print(tm)
         self.ui.tableView.setItem(rowPosition, 1,QtWidgets.QTableWidgetItem(tm))
         self.ui.tableView.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(item[1].src))
         self.ui.tableView.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(item[1].dst))
-        protocol=item[1].get_field('proto')
-        field=protocol.i2s[item[1].proto]
-        self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(field))
-        self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
+        try:
+            protocol = item[1].get_field('proto')
+            field=protocol.i2s[item[1].proto]
+            self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(field))
+            self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
+        except: # for ipv6
+            try:
+                print(item.show())
+                field = item[1].nh
+
+                self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(field))
+                self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].plen)))
+            except:
+                print(item.show())
+
         self.ui.tableView.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem(str(item.summary())))
-
-
-        # for m, item in enumerate(pkts_sniffed):
-        #     self.ui.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(m+1)))
-        #     self.ui.tableView.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(str(datetime.datetime.fromtimestamp(item.time))))
-        #     self.ui.tableView.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(item[1].src))
-        #     self.ui.tableView.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(item[1].dst))
-        #     self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(str(item[1].proto)))
-        #     self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
-        #     self.ui.tableView.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem('info'))
-        #     # self.ui.tableView.insertRow(rowPosition)
-        #     rowPosition = self.ui.tableView.rowCount()
-        #     self.ui.tableView.insertRow(rowPosition)
-
         self.ui.tableView.show()
 
-    def filter_captured_packets(self):
-        global filter
-        filter = str(self.ui.lineEdit.text())
-        print("filter is" + filter)
-        print("filter_captured_packets")
-        if filter != '':
-            filtered_sniffed_packets=pkts_sniffed.filter(func=lambda p : self.show_filered_item(p))
-            self.ui.btnFilter.setEnabled(False)
+    def show_packets_data_after_filtering(self, item , index):
+        # print("remove table")
+        # self.ui.tableView.removeRow(0)
+        # rowPosition = 0
 
-    def show_filered_item(self,p):
-        print("show_filered_item ")
-        protocol = p[1].get_field('proto')
-        field = protocol.i2s[p[1].proto]
-        print("show_filered_item "+field)
-        if field == filter:
-            print("field = "+field)
-            print("filter = "+filter)
-            self.show_packets_data(p,store=False)
+        global pkts_sniffed, num_of_packets
+        rowPosition = self.ui.tableView.rowCount()
+        self.ui.tableView.insertRow(rowPosition)
+        pkts_sniffed.append(item)
+
+        # print(pkts_sniffed)
+        self.ui.tableView.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(index)))
+
+        tm = str(datetime.utcfromtimestamp(item.time))
+        # print(tm)
+        self.ui.tableView.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(tm))
+        self.ui.tableView.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(item[1].src))
+        self.ui.tableView.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(item[1].dst))
+        try:
+            protocol = item[1].get_field('proto')
+            field = protocol.i2s[item[1].proto]
+            self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(field))
+            self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].len)))
+        except:  # for ipv6
+            try:
+                print(item.show())
+                field = item[1].nh
+
+                self.ui.tableView.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(field))
+                self.ui.tableView.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(str(item[1].plen)))
+            except:
+                print("except not ipv6")
+                print(item.show())
+        self.ui.tableView.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem(str(item.summary())))
+
+    def filter_captured_packets(self):
+        global filter,pkts_sniffed
+        filter = str(self.ui.lineEdit.text())
+        self.sniffer.filter=filter
+
+        if filter != '':
+            pkts_sniffed.clear()
+
+            self.ui.tableView.setRowCount(0)
+            #self.ui.tableView.show()
+            print("num of rows",self.ui.tableView.rowCount())
+
+            self.sniffer.filter_captured_packets()
+            print("filter from main")
+
+
+    # def show_filered_item(self,p):
+    #     print("show_filered_item ")
+    #     protocol = p.get_field('proto')
+    #     field = protocol.i2s[p.proto]
+    #     print("show_filered_item "+field)
+    #     if field == filter:
+    #         print("field = "+field)
+    #         print("filter = "+filter)
+    #         self.show_packets_data(p,store=False)
 
     def show_packet_details(self, pcket_clicked):
+        print("pcket_clicked.row() = ",str(pcket_clicked.row()))
 
         self.ui.hex_view.setText(hexdump(pkts_sniffed[pcket_clicked.row()], dump=True))
         self.ui.tableView_2.clear()
@@ -114,29 +162,62 @@ class GuiForm(QtWidgets.QMainWindow):
                 items = QtWidgets.QTreeWidgetItem(parent_node)
                 items.setText(0, detail)
 
-    def start_sniffing(self, interface=conf.iface, filter=''):
-        sniff(count=10, iface=interface, filter=filter, prn=self.show_packets_data)
+    def start_capturing_packets(self, interface=conf.iface, filter=''):
+        #sniff(count=10, iface=interface, filter=filter, prn=self.show_packets_data)
+        self.ui.btnStart.setEnabled(False)
+        self.ui.btnStop.setEnabled(True)
+        self.sniffer.filter = filter
+        self.sniffer.offline=None
+        #self.sniffer.timeToStop = False
 
-    def editor(self):
-        self.textEdit = QtWidgets.QTextEdit()
-        self.setCentralWidget(self.textEdit)
+        #self.sniffer.start_sniffing_from_thread()
+
+
+
+    def set_filter_val(self):
+        global filter
+        filter = str(self.ui.lineEdit.text())
+        print("filter is" + filter)
+
+    def stop_capturing_packets(self):
+        self.ui.btnStop.setEnabled(False)
+        self.ui.btnStart.setEnabled(True)
+        self.sniffer.timeToStop = True
+
 
     def file_open(self):
-        global pkts_sniffed
-        # need to make name an tupple otherwise i had an error and app crashed
+        global pkts_sniffed,num_of_packets
+        #TODO ASK FOR saving packets
+        #TODO  call file_save
+        self.file_save()
+
+
+
         name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
         print('opend file '+name)
-        pkts_sniffed= rdpcap(name)
+        if name!='':
+            self.ui.tableView_2.clear()
+
+
+        try:
+            pkts_sniffed.clear()
+            self.sniffer.timeToStop=True
+            self.sniffer.sniffed_packets_from_thread .clear()
+            self.sniffer.offline = name
+            self.sniffer.show_read_packets()
+            self.ui.tableView.setRowCount(0)
+            num_of_packets=0
+            # for pkt in pkts_sniffed:
+            #     self.show_packets_data(pkt)
+        except:
+            print("not such file")#TODO SHOW Dialog BOX
 
 
     def file_save(self):
 
         name, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        wrpcap(name+'.pcap', pkts_sniffed)
-        #file = open(name, 'w')
-        #text = self.textEdit.toPlainText()
-        #file.write(text)
-        #file.close()
+        wrpcap(name+'.pcap', self.sniffer.sniffed_packets_from_thread)
+
 
 class Ui_Wireshark(object):
     def setupUi(self, Wireshark):
@@ -187,8 +268,10 @@ class Ui_Wireshark(object):
         self.lineEdit.setObjectName("lineEdit")
 
         self.btnFilter=QtWidgets.QPushButton(self.centralwidget)
-        self.btnFilter.setGeometry(QtCore.QRect(1110, 50, 50, 20))
+        self.btnFilter.setGeometry(QtCore.QRect(1140, 50, 50, 20))
         self.btnFilter.setObjectName("btnFilter")
+        self.btnStart.setEnabled(False)
+        self.btnFilter.setText("filter")
 
         self.tableView = QtWidgets.QTableWidget(self.centralwidget)
         self.tableView.setGeometry(QtCore.QRect(60, 110, 1200, 321))

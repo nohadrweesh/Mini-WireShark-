@@ -7,12 +7,12 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
+interfaces=None
 class Ui_WelcomeWireshark(object):
-    def open_pckts_window(self):
-        self.window = QtWidgets.QMainWindow()
-        self.ui = Ui_Wireshark()
-        self.ui.setupUi(self.window)
+    def open_pckts_window(self,interface_chosen):
+        #self.window = QtWidgets.QMainWindow()
+        self.window = GuiForm(interface_chosen=interface_chosen)
+        #self.ui.setupUi(self.window)
         WelcomeWireshark.hide()
         self.window.show()
 
@@ -47,6 +47,7 @@ class Ui_WelcomeWireshark(object):
         self.make_custom_listview()
         self.interfacesListView.itemClicked.connect(self.item_chosen)
 
+
         WelcomeWireshark.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(WelcomeWireshark)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 482, 21))
@@ -71,17 +72,23 @@ class Ui_WelcomeWireshark(object):
         self.LabelUingFilter.setText(_translate("WelcomeWireshark", "....using this filter"))
 
     def make_custom_listview(self):
+        global  interfaces
 
 
         interfaces = get_interfaces_list()
         #interfaces=['noah','ali','fofo']
         for interface in interfaces:
-           self.interfacesListView.addItem(interface)
+           self.interfacesListView.addItem(interface["netid"])
 
     def item_chosen(self,item):
         # got to pckts lst with that item
-        self.open_pckts_window()
-        print('you clicked ' + item.text())
+
+        interface_num=self.interfacesListView.currentRow()
+        interface_chosen=interfaces[interface_num]["name"]
+        self.open_pckts_window(interface_chosen)
+
+        print('you clicked ' + item.text()+"with number "+interface_chosen)
+        #global  interface_chosen=i
 from nerworkpro import  *
 
 
