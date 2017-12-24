@@ -204,7 +204,18 @@ class GuiForm(QtWidgets.QMainWindow):
 
 
         # TODO MessageBox to ask whether save or not
-        self.file_save()
+        choice = QtWidgets.QMessageBox.question(self, 'Message',
+                                     "Do you want to save packets before opening another file?", QtWidgets.QMessageBox.Yes |
+                                     QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+
+        if choice == QtWidgets.QMessageBox.Yes:
+            print('save packets')
+            self.file_save()
+
+        else:
+            pass
+            # TODO  call file_save
+        #self.file_save()
         self.sniffer.flag = 3
 
 
@@ -217,10 +228,10 @@ class GuiForm(QtWidgets.QMainWindow):
         global pkts_sniffed,num_of_packets
         # TODO ASK FOR saving packets
         choice = QtWidgets.QMessageBox.question(self, 'Message',
-                                     "Do you want to save packets before opening another file?", QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
+                                     "Do you want to save packets before opening another file?", QtWidgets.QMessageBox.Yes |
+                                     QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
 
-        if choice == QMessageBox.Yes:
+        if choice == QtWidgets.QMessageBox.Yes:
             print('save packets')
             self.file_save()
 
@@ -379,8 +390,8 @@ class Ui_Wireshark(object):
     def retranslateUi(self, Wireshark):
         _translate = QtCore.QCoreApplication.translate
         Wireshark.setWindowTitle(_translate("Wireshark", "Sniffer"))
-        self.btnStart.setText(_translate("Wireshark", "btnStart"))
-        self.btnStop.setText(_translate("Wireshark", "btnStop"))
+        self.btnStart.setText(_translate("Wireshark", "ReStart"))
+        self.btnStop.setText(_translate("Wireshark", "Stop"))
         self.labelSource.setText(_translate("Wireshark", "Source"))
         self.labelDestination.setText(_translate("Wireshark", "Destination"))
         self.labelProtocol.setText(_translate("Wireshark", "Protocol"))
